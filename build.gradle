@@ -1,0 +1,103 @@
+/**
+
+ * USAGE
+
+ * Run client/server code.
+ * > gradle installDist
+ * > ./build/install/bin/<applicationName>
+ * > gradle clean
+
+ * Regenerate gRPC interfaces from .proto
+ * > gradle build
+
+ */
+
+
+plugins {
+    // facilitates creating executable JVM application
+    id 'application'
+    // ASSUMES GRADLE 2.12 OR HIGHER. Use plugin version 0.7.5 with earlier gradle versions
+    id 'com.google.protobuf' version '0.8.8'
+}
+
+// resolve dependencies by checking these public repositories
+repositories {
+    maven { // The google mirror is less flaky than mavenCentral()
+        url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
+    mavenLocal()
+}
+
+dependencies {
+    compileOnly "javax.annotation:javax.annotation-api:1.2"
+    compile 'io.grpc:grpc-netty-shaded:1.21.0'
+    compile 'io.grpc:grpc-protobuf:1.21.0'
+    compile 'io.grpc:grpc-stub:1.21.0'
+}
+
+// Generate gRPC client/server interfaces from our .proto service definition
+// which makes our API callable from local objects
+protobuf {
+  protoc {
+    artifact = "com.google.protobuf:protoc:3.7.1"
+  }
+  plugins {
+    grpc {
+      artifact = 'io.grpc:protoc-gen-grpc-java:1.21.0'
+    }
+  }
+  generateProtoTasks {
+    all()*.plugins {
+      grpc {}
+    }
+  }
+}
+
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
+
+/**********************************
+ *             TASKS              *
+ **********************************/
+
+startScripts.enabled = false
+def binDir = 'bin'
+
+// Extend clean to delete bin directory
+clean {
+    delete binDir
+}
+
+task routeGuideServer(type: CreateStartScripts) {
+    mainClassName = 'io.grpc.routeguide.RouteGuideServer'
+    applicationName = 'route-guide-server'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
+task routeGuideClient(type: CreateStartScripts) {
+    mainClassName = 'io.grpc.routeguide.RouteGuideClient'
+    applicationName = 'route-guide-client'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
+task shellClient(type: CreateStartScripts) {
+    mainClassName = 'io.grpc.sandbox.Shell'
+    applicationName = 'shell-client'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
+applicationDistribution.into(binDir) {
+    from(routeGuideServer)
+    from(routeGuideClient)
+    from(shellClient)
+    fileMode = 0755
+}
