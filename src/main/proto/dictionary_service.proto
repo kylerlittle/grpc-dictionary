@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+// use same package as where src client/server code lives
+option java_package = "io.grpc.dictionary";
+option java_outer_classname = "DictionaryProto";
+option objc_class_prefix = "DP";
+
+package dictionary;
+
+// The service definition for our dictionary
+service Dictionary {
+  // Define the "Remote Procedural Protocol" for looking up a word
+  rpc LookUpWord (WordRequest) returns (LookUpResponse) {}
+
+  // Define the "Remote Procedural Protocol" for defining a word
+  rpc DefineWord (WordRequest) returns (DefineResponse) {}
+}
+
+// The request message containing a word to be
+// 1. looked up
+// 2. defined
+message WordRequest {
+  string word = 1;
+  string ISOCode = 2;
+  string definition = 3;
+}
+
+message LookUpResponse {
+  ResponseCode code = 1;
+  string ISOCode = 2;
+  string definition = 3;
+}
+
+message DefineResponse {
+  ResponseCode code = 1;
+}
+
+enum ResponseCode {
+  SUCCESS = 0;
+  FAILURE = 1;
+}

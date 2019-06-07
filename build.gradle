@@ -52,7 +52,8 @@ protobuf {
   }
 }
 
-// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code
+// otherwise, many annoying red squiggly lines from the linter.
 sourceSets {
     main {
         java {
@@ -62,10 +63,6 @@ sourceSets {
     }
 }
 
-/**********************************
- *             TASKS              *
- **********************************/
-
 startScripts.enabled = false
 def binDir = 'bin'
 
@@ -74,30 +71,22 @@ clean {
     delete binDir
 }
 
-task routeGuideServer(type: CreateStartScripts) {
-    mainClassName = 'io.grpc.routeguide.RouteGuideServer'
-    applicationName = 'route-guide-server'
+task dictionaryServer(type: CreateStartScripts) {
+    mainClassName = 'io.grpc.dictionary.DictionaryServer'
+    applicationName = 'dictionary-server'
     outputDir = new File(project.buildDir, 'tmp')
     classpath = startScripts.classpath
 }
 
-task routeGuideClient(type: CreateStartScripts) {
-    mainClassName = 'io.grpc.routeguide.RouteGuideClient'
-    applicationName = 'route-guide-client'
-    outputDir = new File(project.buildDir, 'tmp')
-    classpath = startScripts.classpath
-}
-
-task shellClient(type: CreateStartScripts) {
-    mainClassName = 'io.grpc.sandbox.Shell'
-    applicationName = 'shell-client'
+task dictionaryClient(type: CreateStartScripts) {
+    mainClassName = 'io.grpc.dictionary.DictionaryClient'
+    applicationName = 'dictionary-client'
     outputDir = new File(project.buildDir, 'tmp')
     classpath = startScripts.classpath
 }
 
 applicationDistribution.into(binDir) {
-    from(routeGuideServer)
-    from(routeGuideClient)
-    from(shellClient)
+    from(dictionaryServer)
+    from(dictionaryClient)
     fileMode = 0755
 }
