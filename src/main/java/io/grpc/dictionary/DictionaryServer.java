@@ -127,6 +127,7 @@ public class DictionaryServer {
         responseCode = (result) ? ResponseCode.SUCCESS : ResponseCode.FAILURE;
       } catch (IOException ex) {
         logger.warning(String.format("IOException while adding word '%s' to dictionary.", request.getWord()));
+        logger.warning("IOException " + ex.getMessage());
         responseCode = ResponseCode.FAILURE;
       }
 

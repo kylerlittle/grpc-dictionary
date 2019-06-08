@@ -1,9 +1,12 @@
 package io.grpc.dictionary;
 
 import com.google.protobuf.util.JsonFormat;
+
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.net.URL;
@@ -55,27 +58,38 @@ public class DictionaryUtil {
     InputStream input = file.openStream();
     List<WordRequest> wordList;
     boolean result;
+
     try {
       Reader reader = new InputStreamReader(input, Charset.forName("UTF-8"));
       try {
         DictionaryDatabase.Builder database = DictionaryDatabase.newBuilder();
         JsonFormat.parser().merge(reader, database);
         wordList = database.getDictionaryList();
+
+        // Present? Assumes "contains" operates on all fields of object.
         if (wordList.contains(wordToAdd)) {
           result = false;
         } else {
           result = true;
           
+          // Close input streams
+          reader.close();
+          input.close();
+
           // Word not present in dictionary, so add it!
           URLConnection connection = file.openConnection();
-          OutputStreamWriter outputWriter = new OutputStreamWriter(connection.getOutputStream());
+          connection.setDoOutput(true);
+          OutputStream outputStream = connection.getOutputStream();
           try {
-            JsonFormat.printer().appendTo(wordToAdd, outputWriter);
+            OutputStreamWriter outputWriter = new OutputStreamWriter(outputStream, Charset.forName("UTF-8"));
+            try {
+              JsonFormat.printer().appendTo(wordToAdd, outputWriter);
+            } finally {
+              outputWriter.close();
+            }
           } finally {
-            outputWriter.close();
-          }
-
-          
+            outputStream.close();
+          }   
         }
       } finally {
         reader.close();
@@ -85,12 +99,5 @@ public class DictionaryUtil {
     }
 
     return result;
-  }
-
-  /**
-   * Indicates whether the given word exists (i.e. is an entry in the dictionary file)
-   */
-  public static boolean exists(WordRequest wordRequest) {
-    return wordRequest != null && !wordRequest.getWord().isEmpty();
   }
 }
