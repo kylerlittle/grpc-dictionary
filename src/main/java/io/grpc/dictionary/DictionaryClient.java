@@ -8,7 +8,7 @@ import io.grpc.dictionary.DictionaryGrpc.DictionaryStub;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.NoSuchElementException;
 // use for input
 import java.util.Scanner;
 
@@ -80,27 +80,74 @@ public class DictionaryClient {
     }
   }
 
+  /**
+   * Blocking unary call -- i.e. block the current thread & wait
+   * for response. Raise exception if failure.
+   */
+  public void defineWord(String wordToLookUp, String ISOLanguageCode, String definition) {
+    WordRequest request = WordRequest.newBuilder()
+      .setWord(wordToLookUp)
+      .setISOCode(ISOLanguageCode)
+      .setDefinition(definition)
+      .build();
+
+    DefineResponse resp;
+    try {
+      resp = blockingStub.defineWord(request);
+    } catch (StatusRuntimeException e) {
+      warning("RPC failed: {0}", e.getStatus());
+      return;
+    }
+
+    // Display result
+    if (resp.getCode() == ResponseCode.SUCCESS) {
+      System.out.println("Successfully added word to dictionary");
+    } else {
+      System.out.println("Failed to add word to dictionary");
+    }
+  }
+
   /** Issues several different requests and then exits. */
   public static void main(String[] args) throws InterruptedException {
     Scanner scan = new Scanner(System.in);
-    String inputStr = null;
+    String word = null, ISOcode = null, definition;
     DictionaryClient client = new DictionaryClient("localhost", 8980);
+    int optionSelected = 0;
 
     try {
       while (true) {
-        System.out.print("Enter a word to look up: ");
+        // Get user option
+        System.out.print("Enter '1' to look up a word or '2' to define a word: ");
+        optionSelected = scan.nextInt();
 
-        // get input
-        inputStr = scan.nextLine();
+        // Get a word to look up from user
+        System.out.print("Enter a word: ");
+        word = scan.nextLine();
 
-        // If user entered something
-        if (inputStr != null && inputStr.length() > 0) {
-          // Look up the word in the dictionary
-          client.lookUpWord(inputStr, "en");
-        } else {
-          break;
+        // Get an encoding to look up from user
+        System.out.print("Enter the 2-letter ISO language code: ");
+        ISOcode = scan.nextLine();
+
+        switch (optionSelected) {
+          case 1:
+            // Look up the word
+            client.lookUpWord(word, ISOcode);
+            break;
+          case 2:
+            // Get the definition
+            System.out.print(String.format("Enter the definition for '%s': ", word));
+            definition = scan.nextLine();
+
+            // Define the word
+            client.defineWord(word, ISOcode, definition);
+            break;
+          default:
+            System.out.println("Invalid option. Try again.");
+            break;
         }
       }
+    } catch (NoSuchElementException ex) {
+      // successfully exit infinite loop when nothing is entered
     } finally {
       client.shutdown();
     }
