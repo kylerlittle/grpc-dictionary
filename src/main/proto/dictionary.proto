@@ -41,3 +41,8 @@ enum ResponseCode {
   SUCCESS = 0;
   FAILURE = 1;
 }
+
+// Not used in the RPC. Instead, this is here for the form serialized to disk.
+message DictionaryDatabase {
+  repeated WordRequest wordEntry = 1;
+}

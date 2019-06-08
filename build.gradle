@@ -32,6 +32,9 @@ dependencies {
     compile 'io.grpc:grpc-netty-shaded:1.21.0'
     compile 'io.grpc:grpc-protobuf:1.21.0'
     compile 'io.grpc:grpc-stub:1.21.0'
+
+    // need this for JsonFormat
+    implementation "com.google.protobuf:protobuf-java-util:3.7.1"
 }
 
 // Generate gRPC client/server interfaces from our .proto service definition
