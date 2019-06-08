@@ -9,8 +9,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * A gRPC server that serves the Dictionary (see dictionary_service.proto)
- * service.
+ * A gRPC server that serves the Dictionary (see dictionary.proto) service.
  */
 public class DictionaryServer {
   private static final Logger logger = Logger.getLogger(DictionaryServer.class.getName());
@@ -31,8 +30,8 @@ public class DictionaryServer {
   }
 
   /**
-   * Create a DictionaryService server using serverBuilder as a base and words
-   * as data.
+   * Create a DictionaryService server using serverBuilder as a base and words as
+   * data.
    */
   public DictionaryServer(ServerBuilder<?> serverBuilder, int port, List<WordRequest> words) {
     this.port = port;
@@ -82,8 +81,8 @@ public class DictionaryServer {
   }
 
   /**
-   * Our implementation of DictionaryService service. See dictionary_service.proto
-   * for details of the methods.
+   * Our implementation of DictionaryService service. See dictionary.proto for
+   * details of the methods.
    */
   private static class DictionaryService extends DictionaryGrpc.DictionaryImplBase {
     private final List<WordRequest> words;
@@ -98,8 +97,9 @@ public class DictionaryServer {
      */
     @Override
     public void lookUpWord(WordRequest request, StreamObserver<LookUpResponse> responseObserver) {
-      // Look up word in JSON file by getting first occurrence of word -- assume no duplicates
-      int indexOfWord = words.indexOf(request);
+      // Look up word in JSON file by getting first occurrence of word -- assume no
+      // duplicates
+      int indexOfWord = indexInList(request);
       WordRequest wordRequest;
       ResponseCode responseCode;
       String definition = "", code = "";
@@ -113,13 +113,50 @@ public class DictionaryServer {
         code = wordRequest.getISOCode();
       }
 
-      LookUpResponse lookUpResponse = LookUpResponse.newBuilder()
-          .setCode(responseCode)
-          .setDefinition(definition)
-          .setISOCode(code)
-          .build();
+      LookUpResponse lookUpResponse = LookUpResponse.newBuilder().setCode(responseCode).setDefinition(definition)
+          .setISOCode(code).build();
       responseObserver.onNext(lookUpResponse);
       responseObserver.onCompleted();
+    }
+
+    @Override
+    public void defineWord(WordRequest request, StreamObserver<DefineResponse> responseObserver) {
+      ResponseCode responseCode;
+      try {
+        boolean result = DictionaryUtil.addWord(DictionaryUtil.getDefaultFeaturesFile(), request);
+        responseCode = (result) ? ResponseCode.SUCCESS : ResponseCode.FAILURE;
+      } catch (IOException ex) {
+        logger.warning(String.format("IOException while adding word '%s' to dictionary.", request.getWord()));
+        responseCode = ResponseCode.FAILURE;
+      }
+
+      DefineResponse defineResponse = DefineResponse.newBuilder().setCode(responseCode).build();
+      responseObserver.onNext(defineResponse);
+      responseObserver.onCompleted();
+    }
+
+    /**
+     * Look for the provided WordRequest in this.words, by matching only the "word"
+     * and "ISOCode" instance fields of WordRequest. Return the index of the first
+     * occurrence of the word. Return -1 if not found. Ignore case!
+     * 
+     * @param findThisRequest
+     * @return
+     */
+    private int indexInList(WordRequest findThisRequest) {
+      int counter = 0;
+
+      for (WordRequest wordRequest : this.words) {
+        if (wordRequest.getWord().equalsIgnoreCase(findThisRequest.getWord())
+            && wordRequest.getISOCode().equalsIgnoreCase(findThisRequest.getISOCode())) {
+          return counter;
+        } else {
+          counter++;
+          continue;
+        }
+      }
+
+      return -1;
     }
   }
 }

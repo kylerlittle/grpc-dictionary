@@ -119,6 +119,8 @@ public class DictionaryClient {
         // Get user option
         System.out.print("Enter '1' to look up a word or '2' to define a word: ");
         optionSelected = scan.nextInt();
+        // consume new line character
+        scan.nextLine();
 
         // Get a word to look up from user
         System.out.print("Enter a word: ");

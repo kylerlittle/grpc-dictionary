@@ -4,8 +4,10 @@ import com.google.protobuf.util.JsonFormat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -30,13 +32,59 @@ public class DictionaryUtil {
       try {
         DictionaryDatabase.Builder database = DictionaryDatabase.newBuilder();
         JsonFormat.parser().merge(reader, database);
-        return database.getWordEntryList();
+        return database.getDictionaryList();
       } finally {
         reader.close();
       }
     } finally {
       input.close();
     }
+  }
+
+  /**
+   * Add word to JSON file specified by URL.
+   * Only adds word if not already present in the file.
+   * 
+   * Return true if successful add; else false
+   * @param file
+   * @return
+   * @throws IOException
+   */
+  public static boolean addWord(URL file, WordRequest wordToAdd) throws IOException {
+    // First, check if word is present in dictionary already.
+    InputStream input = file.openStream();
+    List<WordRequest> wordList;
+    boolean result;
+    try {
+      Reader reader = new InputStreamReader(input, Charset.forName("UTF-8"));
+      try {
+        DictionaryDatabase.Builder database = DictionaryDatabase.newBuilder();
+        JsonFormat.parser().merge(reader, database);
+        wordList = database.getDictionaryList();
+        if (wordList.contains(wordToAdd)) {
+          result = false;
+        } else {
+          result = true;
+          
+          // Word not present in dictionary, so add it!
+          URLConnection connection = file.openConnection();
+          OutputStreamWriter outputWriter = new OutputStreamWriter(connection.getOutputStream());
+          try {
+            JsonFormat.printer().appendTo(wordToAdd, outputWriter);
+          } finally {
+            outputWriter.close();
+          }
+
+          
+        }
+      } finally {
+        reader.close();
+      }
+    } finally {
+      input.close();
+    }
+
+    return result;
   }
 
   /**
